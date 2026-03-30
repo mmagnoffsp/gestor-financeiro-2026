@@ -83,17 +83,17 @@ if verificar_senha():
 
     opcoes_tipo = ["Entrada (Pagto)", "Saída (Pagto)", "Entrada (Vale)", "Saída (Vale)", "Baixa de Reserva"]
     
-    # LISTA ATUALIZADA COM DESPESAS EMERGENCIAIS
+    # LISTA ATUALIZADA COM DENTISTA/CLINICAS/HOSPITAL
     lista_categorias_base = [
         "açougue", "agua potavel", "areia pet", "barbearia", "condominio", 
-        "deposito apartamento", "despesas emergenciais", "enel", 
-        "gastos parcelados", "internet", "lanche gean", "mercado", 
-        "pagamento recebido", "vale recebido", "taxi/uber", 
-        "universidade", "vacina pets", "vivo celular"
+        "dentista/clinicas/hospital", "deposito apartamento", "despesas emergenciais", 
+        "diferenca reserva caixa", "enel", "gastos parcelados", "internet", 
+        "lanche gean", "mercado", "pagamento recebido", "reserva caixa", 
+        "vale recebido", "taxi/uber", "universidade", "vacina pets", "vivo celular"
     ]
     lista_categorias = sorted([item.title() for item in lista_categorias_base])
 
-    # --- LANÇAMENTO ---
+    # --- NOVO LANÇAMENTO ---
     with st.expander("➕ Novo Lançamento", expanded=True):
         c1, c2 = st.columns(2)
         with c1:
@@ -155,21 +155,26 @@ if verificar_senha():
                 col_ed1, col_ed2 = st.columns(2)
                 
                 with col_ed1:
+                    try:
+                        idx_cat = lista_categorias.index(reg['categoria'])
+                    except:
+                        idx_cat = 0
+                    nova_categoria = st.selectbox("Alterar Categoria", lista_categorias, index=idx_cat, key="cat_edit")
                     novo_valor = st.number_input("Novo Valor", value=float(reg['valor']), key="val_edit")
-                    nova_obs = st.text_input("Nova Obs", value=reg['observacao'] if reg['observacao'] else "", key="obs_edit")
+                
                 with col_ed2:
-                    # Garantir que o tipo atual seja selecionado por padrão
                     try:
                         idx_tipo = opcoes_tipo.index(reg['tipo'])
                     except:
                         idx_tipo = 0
                     novo_tipo = st.selectbox("Novo Tipo", opcoes_tipo, index=idx_tipo, key="tipo_edit")
+                    nova_obs = st.text_input("Nova Obs", value=reg['observacao'] if reg['observacao'] else "", key="obs_edit")
                 
                 btn_at, btn_ex = st.columns(2)
                 if btn_at.button("💾 Salvar Alterações", use_container_width=True):
-                    if atualizar_registro(reg['id'], reg['data'], reg['categoria'], novo_valor, novo_tipo, nova_obs):
-                        st.success("Registro atualizado!"); st.rerun()
+                    if atualizar_registro(reg['id'], reg['data'], nova_categoria, novo_valor, novo_tipo, nova_obs):
+                        st.success("✅ Registro atualizado!"); st.rerun()
                 
                 if btn_ex.button("🗑️ Excluir Registro", use_container_width=True, type="primary"):
                     if deletar_registro(reg['id']):
-                        st.warning("Registro removido!"); st.rerun()
+                        st.warning("⚠️ Registro removido!"); st.rerun()
