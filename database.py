@@ -38,14 +38,12 @@ def inicializar_banco():
 def salvar_dados(data, categoria, valor, tipo, obs):
     """Envia os dados para a nuvem no Neon.tech"""
     if not engine: return False
-    # Definindo a query com parâmetros seguros
     query = text("""
         INSERT INTO lancamentos (data, categoria, valor, tipo, observacao) 
         VALUES (:d, :c, :v, :t, :o)
     """)
     try:
         with engine.connect() as conn:
-            # Passando o dicionário de valores para o SQLAlchemy
             conn.execute(query, {"d": data, "c": categoria, "v": valor, "t": tipo, "o": obs})
             conn.commit()
             return True
@@ -64,4 +62,32 @@ def deletar_registro(id_registro):
             return True
     except Exception as e:
         print(f"Erro ao deletar: {e}")
+        return False
+
+# --- NOVA FUNÇÃO DE EDIÇÃO ---
+def atualizar_registro(id_reg, data, categoria, valor, tipo, obs):
+    """Atualiza um lançamento existente no banco de dados Neon"""
+    if not engine:
+        return False
+    
+    query = text("""
+        UPDATE lancamentos 
+        SET data = :d, categoria = :c, valor = :v, tipo = :t, observacao = :o 
+        WHERE id = :id
+    """)
+    
+    try:
+        with engine.connect() as conn:
+            conn.execute(query, {
+                "d": data, 
+                "c": categoria, 
+                "v": valor, 
+                "t": tipo, 
+                "o": obs, 
+                "id": id_reg
+            })
+            conn.commit()
+            return True
+    except Exception as e:
+        print(f"Erro ao atualizar no banco: {e}")
         return False
