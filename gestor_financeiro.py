@@ -21,15 +21,20 @@ def verificar_senha():
         return False
     return True
 
-# --- 2. FUNÇÃO PARA GERAR PDF ---
+# --- 2. FUNÇÃO PARA GERAR PDF COM TOTAIS ---
 def gerar_pdf(dataframe):
+    # Cálculos para o PDF
+    t_entradas = dataframe[dataframe['tipo'] == 'Entrada']['valor'].sum()
+    t_saidas = dataframe[dataframe['tipo'] == 'Saída']['valor'].sum()
+    saldo = t_entradas - t_saidas
+
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", "B", 16)
     pdf.cell(190, 10, "Relatorio Financeiro - ADS", ln=True, align="C")
     pdf.ln(10)
     
-    # Cabeçalho da tabela no PDF
+    # Cabeçalho da tabela
     pdf.set_font("Arial", "B", 10)
     pdf.cell(25, 10, "Data", 1)
     pdf.cell(55, 10, "Categoria", 1)
@@ -48,6 +53,14 @@ def gerar_pdf(dataframe):
         observacao = str(row['observacao']) if row['observacao'] else ""
         pdf.cell(65, 10, observacao[:35], 1)
         pdf.ln()
+    
+    # Rodapé com Totais no PDF
+    pdf.ln(5)
+    pdf.set_font("Arial", "B", 11)
+    pdf.cell(190, 10, f"Total Entradas: R$ {t_entradas:.2f}", ln=True)
+    pdf.cell(190, 10, f"Total Saidas: R$ {t_saidas:.2f}", ln=True)
+    pdf.set_text_color(0, 128, 0) if saldo >= 0 else pdf.set_text_color(255, 0, 0)
+    pdf.cell(190, 10, f"SALDO FINAL: R$ {saldo:.2f}", ln=True)
     
     return pdf.output(dest='S').encode('latin-1', 'ignore')
 
@@ -106,13 +119,26 @@ if verificar_senha():
             df = pd.read_sql("SELECT id, data, categoria, valor, tipo, observacao FROM lancamentos", engine)
 
             if not df.empty:
+                # --- NOVO: CÁLCULO DE TOTAIS PARA DASHBOARD ---
+                total_entradas = df[df['tipo'] == 'Entrada']['valor'].sum()
+                total_saidas = df[df['tipo'] == 'Saída']['valor'].sum()
+                saldo_atual = total_entradas - total_saidas
+
+                st.subheader("📊 Resumo Financeiro Atual")
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Total Entradas", f"R$ {total_entradas:,.2f}")
+                m2.metric("Total Saídas", f"R$ {total_saidas:,.2f}", delta=f"-R$ {total_saidas:,.2f}", delta_color="inverse")
+                m3.metric("Saldo em Caixa", f"R$ {saldo_atual:,.2f}", delta=f"R$ {saldo_atual:,.2f}")
+                
+                st.divider()
+
                 col_tabela, col_grafico = st.columns([1, 1])
                 with col_tabela:
                     st.write("**Histórico Recente**")
                     st.dataframe(df.sort_values(by='id', ascending=False), width='stretch', hide_index=True)
                 with col_grafico:
-                    st.write("**Resumo por Categoria**")
-                    resumo = df.groupby("categoria")["valor"].sum()
+                    st.write("**Gasto por Categoria**")
+                    resumo = df[df['tipo'] == 'Saída'].groupby("categoria")["valor"].sum()
                     st.bar_chart(resumo)
                 
                 # --- EXPORTAR PDF ---
