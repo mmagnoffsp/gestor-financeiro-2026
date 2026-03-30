@@ -43,14 +43,15 @@ if verificar_senha():
             valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
         
         with col2:
-            # Lista base atualizada e corrigida
+            # Lista base atualizada com as novas categorias de entrada
             lista_categorias_base = [
                 "açougue", "agua potavel", "areia pet", "barbearia", "condominio",
                 "deposito apartamento pagamento", "deposito apartamento vale",
                 "enel", "gastos parcelados", "internet", "lanche gean pagamento", 
-                "lanche gean vale", "mercado", "reserva de caixa no vale", 
-                "reserva de caixa no pagamento", "taxi/uber", "universidade", 
-                "vacina pets", "vivo celular"
+                "lanche gean vale", "mercado", "pagamento recebido", 
+                "reserva de caixa no vale", "reserva de caixa no pagamento", 
+                "taxi/uber", "universidade", "vacina pets", "vale recebido", 
+                "vivo celular"
             ]
             
             # Formata com a primeira letra maiúscula e organiza de A a Z
@@ -60,8 +61,8 @@ if verificar_senha():
         with col3:
             tipo = st.radio("Tipo", ["Entrada", "Saída"], horizontal=True)
 
-        # Campo de Observação maior (Área de Texto) para detalhes de parcelas
-        obs = st.text_area("Nota / Observação", placeholder="Ex: Parcela 01/12 - Compra parcelada")
+        # Campo de Observação maior (Área de Texto)
+        obs = st.text_area("Nota / Observação", placeholder="Ex: Parcela 01/12 ou Detalhes da entrada")
 
         if st.button("Confirmar Lançamento", use_container_width=True):
             if valor > 0:
@@ -99,7 +100,6 @@ if verificar_senha():
                 st.divider()
                 st.subheader("🗑️ Limpar Registro")
                 
-                # Colunas para deixar o seletor e o botão na mesma linha
                 col_del_1, col_del_2 = st.columns([3, 1])
                 
                 opcoes_delete = {
