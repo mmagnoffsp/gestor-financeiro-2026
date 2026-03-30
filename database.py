@@ -8,13 +8,17 @@ load_dotenv()
 # 2. Pega o link de forma segura
 DB_URL = os.getenv("DATABASE_URL")
 
+# AJUSTE: Garantir que a engine seja criada apenas se a URL existir
+engine = None
 if not DB_URL:
     print("❌ ERRO: O arquivo .env não foi lido ou a variável DATABASE_URL está vazia!")
 else:
-    engine = create_engine(DB_URL)
+    # pool_pre_ping=True evita o erro de 'Connection Closed' do Neon
+    engine = create_engine(DB_URL, pool_pre_ping=True)
 
 def inicializar_banco():
     """Cria a tabela no banco de dados se não existir"""
+    if not engine: return
     try:
         with engine.connect() as conn:
             conn.execute(text("""
@@ -33,12 +37,15 @@ def inicializar_banco():
 
 def salvar_dados(data, categoria, valor, tipo, obs):
     """Envia os dados para a nuvem no Neon.tech"""
+    if not engine: return False
+    # Definindo a query com parâmetros seguros
     query = text("""
         INSERT INTO lancamentos (data, categoria, valor, tipo, observacao) 
         VALUES (:d, :c, :v, :t, :o)
     """)
     try:
         with engine.connect() as conn:
+            # Passando o dicionário de valores para o SQLAlchemy
             conn.execute(query, {"d": data, "c": categoria, "v": valor, "t": tipo, "o": obs})
             conn.commit()
             return True
@@ -46,9 +53,9 @@ def salvar_dados(data, categoria, valor, tipo, obs):
         print(f"Erro ao salvar: {e}")
         return False
 
-# AGORA SIM: Ela está fora da outra função, encostada na margem
 def deletar_registro(id_registro):
-    """Remove um lançamento específico do Neon pelo ID usando SQL puro"""
+    """Remove um lançamento específico do Neon pelo ID"""
+    if not engine: return False
     query = text("DELETE FROM lancamentos WHERE id = :id")
     try:
         with engine.connect() as conn:

@@ -6,10 +6,9 @@ from database import inicializar_banco, salvar_dados, engine
 def verificar_senha():
     """Retorna True se a senha estiver correta."""
     def login():
-        # Você pode mudar a senha abaixo para uma de sua preferência
         senha_digitada = st.text_input("Digite a senha para acessar seus dados:", type="password")
         if st.button("Entrar"):
-            if senha_digitada == "Ca10Mg43@#$": # <--- COLOQUE SUA SENHA AQUI
+            if senha_digitada == "Ca10Mg43@#$":
                 st.session_state["autenticado"] = True
                 st.rerun()
             else:
@@ -26,12 +25,11 @@ st.set_page_config(page_title="Gestor Financeiro ADS", layout="wide")
 
 # --- 3. INÍCIO DO APP PROTEGIDO ---
 if verificar_senha():
-    # Tudo o que está aqui dentro só aparece após o login
     inicializar_banco()
 
     st.title("💰 Meu Gestor Financeiro - Cloud")
 
-    # Botão de Logout para fechar a sessão se quiser
+    # Botão de Logout na barra lateral
     if st.sidebar.button("Sair / Bloquear"):
         del st.session_state["autenticado"]
         st.rerun()
@@ -45,16 +43,27 @@ if verificar_senha():
             valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
         
         with col2:
-            categoria = st.selectbox("Categoria", [
-                "Salário Mensal", "13º Salário", "Férias", 
-                "Amortização FGTS", "Reserva de Caixa", "Aluguel", "Mercado", "Outros"
-            ])
+            # Lista base atualizada e corrigida
+            lista_categorias_base = [
+                "açougue", "agua potavel", "areia pet", "barbearia", "condominio",
+                "deposito apartamento pagamento", "deposito apartamento vale",
+                "enel", "gastos parcelados", "internet", "lanche gean pagamento", 
+                "lanche gean vale", "mercado", "reserva de caixa no vale", 
+                "reserva de caixa no pagamento", "taxi/uber", "universidade", 
+                "vacina pets", "vivo celular"
+            ]
+            
+            # Formata com a primeira letra maiúscula e organiza de A a Z
+            lista_categorias = sorted([item.title() for item in lista_categorias_base])
+            categoria = st.selectbox("Categoria", lista_categorias)
         
         with col3:
-            tipo = st.radio("Tipo", ["Entrada", "Saída"])
-            obs = st.text_input("Nota/Observação")
+            tipo = st.radio("Tipo", ["Entrada", "Saída"], horizontal=True)
 
-        if st.button("Confirmar Lançamento"):
+        # Campo de Observação maior (Área de Texto) para detalhes de parcelas
+        obs = st.text_area("Nota / Observação", placeholder="Ex: Parcela 01/12 - Compra parcelada")
+
+        if st.button("Confirmar Lançamento", use_container_width=True):
             if valor > 0:
                 sucesso = salvar_dados(data, categoria, valor, tipo, obs)
                 if sucesso:
@@ -82,29 +91,38 @@ if verificar_senha():
                     st.dataframe(df_exibicao, width='stretch', hide_index=True)
 
                 with col_grafico:
-                    st.write("**Onde você está gastando/recebendo mais:**")
+                    st.write("**Resumo por Categoria**")
                     resumo = df.groupby("categoria")["valor"].sum()
                     st.bar_chart(resumo)
                 
-                # --- 🗑️ SEÇÃO DE EXCLUSÃO ---
+                # --- 🗑️ SEÇÃO DE EXCLUSÃO (COMPACTA) ---
                 st.divider()
-                st.subheader("🗑️ Gerenciar Lançamentos")
+                st.subheader("🗑️ Limpar Registro")
+                
+                # Colunas para deixar o seletor e o botão na mesma linha
+                col_del_1, col_del_2 = st.columns([3, 1])
                 
                 opcoes_delete = {
                     f"ID {row['id']} - {row['categoria']} (R$ {row['valor']})": row['id'] 
                     for _, row in df.iterrows()
                 }
                 
-                selecionado = st.selectbox("Selecione o registro para excluir:", options=list(opcoes_delete.keys()))
+                with col_del_1:
+                    selecionado = st.selectbox(
+                        "Selecione para excluir:", 
+                        options=sorted(list(opcoes_delete.keys()), reverse=True),
+                        label_visibility="collapsed"
+                    )
                 
-                if st.button("Confirmar Exclusão", type="primary"):
-                    id_para_deletar = opcoes_delete[selecionado]
-                    from database import deletar_registro
-                    if deletar_registro(id_para_deletar):
-                        st.success("Registro removido com sucesso!")
-                        st.rerun()
-                    else:
-                        st.error("Erro ao tentar apagar no banco de dados.")
+                with col_del_2:
+                    if st.button("Excluir", type="primary", use_container_width=True):
+                        id_para_deletar = opcoes_delete[selecionado]
+                        from database import deletar_registro
+                        if deletar_registro(id_para_deletar):
+                            st.success("OK!")
+                            st.rerun()
+                        else:
+                            st.error("Erro!")
                     
             else:
                 st.info("Ainda não há lançamentos para gerar o gráfico.")
