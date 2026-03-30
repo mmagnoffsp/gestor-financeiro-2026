@@ -82,7 +82,15 @@ if verificar_senha():
     st.title("💰 Gestão Unificada: Pagamento & Vale")
 
     opcoes_tipo = ["Entrada (Pagto)", "Saída (Pagto)", "Entrada (Vale)", "Saída (Vale)", "Baixa de Reserva"]
-    lista_categorias_base = ["açougue", "agua potavel", "areia pet", "barbearia", "condominio", "deposito apartamento", "enel", "gastos parcelados", "internet", "lanche gean", "mercado", "pagamento recebido", "vale recebido", "taxi/uber", "universidade", "vacina pets", "vivo celular"]
+    
+    # LISTA ATUALIZADA COM DESPESAS EMERGENCIAIS
+    lista_categorias_base = [
+        "açougue", "agua potavel", "areia pet", "barbearia", "condominio", 
+        "deposito apartamento", "despesas emergenciais", "enel", 
+        "gastos parcelados", "internet", "lanche gean", "mercado", 
+        "pagamento recebido", "vale recebido", "taxi/uber", 
+        "universidade", "vacina pets", "vivo celular"
+    ]
     lista_categorias = sorted([item.title() for item in lista_categorias_base])
 
     # --- LANÇAMENTO ---
@@ -139,7 +147,6 @@ if verificar_senha():
 
             # --- GERENCIAMENTO (EDITAR/DELETAR) ---
             st.subheader("🛠️ Gerenciar Registros")
-            # Criamos um dicionário para facilitar a busca pelo ID selecionado
             dict_itens = {f"ID {r['id']} | {r['data']} | {r['categoria']} - R$ {r['valor']:.2f}": r for _, r in df.iterrows()}
             item_selecionado = st.selectbox("Selecione um registro para Alterar ou Excluir:", options=sorted(list(dict_itens.keys()), reverse=True))
             
@@ -148,10 +155,15 @@ if verificar_senha():
                 col_ed1, col_ed2 = st.columns(2)
                 
                 with col_ed1:
-                    novo_valor = st.number_input("Novo Valor", value=float(reg['valor']))
-                    nova_obs = st.text_input("Nova Obs", value=reg['observacao'] if reg['observacao'] else "")
+                    novo_valor = st.number_input("Novo Valor", value=float(reg['valor']), key="val_edit")
+                    nova_obs = st.text_input("Nova Obs", value=reg['observacao'] if reg['observacao'] else "", key="obs_edit")
                 with col_ed2:
-                    novo_tipo = st.selectbox("Novo Tipo", opcoes_tipo, index=opcoes_tipo.index(reg['tipo']) if reg['tipo'] in opcoes_tipo else 0)
+                    # Garantir que o tipo atual seja selecionado por padrão
+                    try:
+                        idx_tipo = opcoes_tipo.index(reg['tipo'])
+                    except:
+                        idx_tipo = 0
+                    novo_tipo = st.selectbox("Novo Tipo", opcoes_tipo, index=idx_tipo, key="tipo_edit")
                 
                 btn_at, btn_ex = st.columns(2)
                 if btn_at.button("💾 Salvar Alterações", use_container_width=True):
