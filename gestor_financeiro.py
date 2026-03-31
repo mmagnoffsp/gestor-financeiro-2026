@@ -2,12 +2,13 @@ import streamlit as st
 import pandas as pd
 from database import inicializar_banco, salvar_dados, engine, deletar_registro, atualizar_registro
 from fpdf import FPDF
+import plotly.express as px  # <-- ADICIONADO
 
 # --- 1. FUNÇÃO DE SEGURANÇA ---
 def verificar_senha():
     def login():
         senha_digitada = st.text_input("Senha de Acesso:", type="password")
-        if st.button("Entrar"):
+        if st.button("Entrar", width="stretch"):
             if senha_digitada == "Ca10Mg43@#$":
                 st.session_state["autenticado"] = True
                 st.rerun()
@@ -71,7 +72,6 @@ if verificar_senha():
     ]
     lista_categorias = sorted([item.title() for item in lista_categorias_base])
 
-    # Inicialização de estados para os botões de atalho
     if "input_cat" not in st.session_state: st.session_state.input_cat = lista_categorias[0]
     if "input_obs" not in st.session_state: st.session_state.input_obs = ""
     if "input_tipo" not in st.session_state: st.session_state.input_tipo = "Entrada (Pagto)"
@@ -80,17 +80,17 @@ if verificar_senha():
         st.write("**Atalhos de Entrada Rápida:**")
         bt1, bt2, bt3 = st.columns(3)
         
-        if bt1.button("🌴 Férias", use_container_width=True):
+        if bt1.button("🌴 Férias", width="stretch"):
             st.session_state.input_cat = "Pagamento Recebido"
             st.session_state.input_tipo = "Entrada (Pagto)"
             st.session_state.input_obs = "Recebimento de Férias"
             
-        if bt2.button("💰 13º Salário (1ª Parc)", use_container_width=True):
+        if bt2.button("💰 13º Salário (1ª Parc)", width="stretch"):
             st.session_state.input_cat = "Pagamento Recebido"
             st.session_state.input_tipo = "Entrada (Pagto)"
             st.session_state.input_obs = "13º Salário - 1ª Parcela"
             
-        if bt3.button("💰 13º Salário (2ª Parc)", use_container_width=True):
+        if bt3.button("💰 13º Salário (2ª Parc)", width="stretch"):
             st.session_state.input_cat = "Pagamento Recebido"
             st.session_state.input_tipo = "Entrada (Pagto)"
             st.session_state.input_obs = "13º Salário - 2ª Parcela"
@@ -101,8 +101,6 @@ if verificar_senha():
         with c1:
             data = st.date_input("Data")
             valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
-            
-            # Ajusta o index conforme o atalho clicado
             try:
                 idx_cat = lista_categorias.index(st.session_state.input_cat)
             except:
@@ -118,11 +116,10 @@ if verificar_senha():
             
         obs = st.text_input("📝 Finalidade / Observação", value=st.session_state.input_obs)
 
-        if st.button("Confirmar Lançamento", use_container_width=True, type="primary"):
+        if st.button("Confirmar Lançamento", width="stretch", type="primary"):
             if valor > 0:
                 if salvar_dados(data, categoria, valor, tipo, obs):
                     st.success("✅ Registrado com sucesso!")
-                    # Limpa os campos após salvar
                     st.session_state.input_cat = lista_categorias[0]
                     st.session_state.input_obs = ""
                     st.rerun()
@@ -132,6 +129,9 @@ if verificar_senha():
     if engine:
         df = pd.read_sql("SELECT * FROM lancamentos", engine)
         if not df.empty:
+            # Cálculos de Saldo
+            df_gastos = df[df['tipo'].str.contains('Saída')]
+            
             ent_p = df[df['tipo'] == 'Entrada (Pagto)']['valor'].sum()
             sai_p = df[df['tipo'] == 'Saída (Pagto)']['valor'].sum()
             saldo_p = ent_p - sai_p 
@@ -141,7 +141,7 @@ if verificar_senha():
             saldo_reserva = reserva_guardada - reserva_usada
 
             ent_v = df[df['tipo'] == 'Entrada (Vale)']['valor'].sum()
-            sai_v = df[df['tipo'] == 'Saída (Vale)']['valor'].sum()
+            sai_v = df[df['tipo'] == 'Saída (Vale)']['vale'].sum() if 'vale' in df.columns else df[df['tipo'] == 'Saída (Vale)']['valor'].sum()
             saldo_v = ent_v - sai_v
 
             st.subheader("📊 Resumo de Fluxos")
@@ -163,14 +163,25 @@ if verificar_senha():
                 st.metric("Saldo Cartão", f"R$ {saldo_v:,.2f}")
                 st.caption(f"Gasto: R$ {sai_v:.2f}")
 
+            # --- SEÇÃO DO GRÁFICO DE PIZZA ---
             st.divider()
-            
+            st.subheader("🍕 Distribuição de Gastos por Categoria")
+            if not df_gastos.empty:
+                df_pizza = df_gastos.groupby('categoria')['valor'].sum().reset_index()
+                fig = px.pie(df_pizza, values='valor', names='categoria', hole=0.3, 
+                             color_discrete_sequence=px.colors.qualitative.Pastel)
+                st.plotly_chart(fig, width="stretch")
+            else:
+                st.info("Ainda não há gastos registrados para gerar o gráfico.")
+
+            st.divider()
             st.write("**Histórico Detalhado**")
             st.dataframe(df.sort_values(by='id', ascending=False), hide_index=True)
             
             pdf_bytes = gerar_pdf(df)
             st.download_button("📥 Baixar Relatório", pdf_bytes, "fechamento.pdf", "application/pdf")
 
+            # Gerenciar Registros
             st.subheader("🛠️ Gerenciar Registros")
             dict_itens = {f"ID {r['id']} | {r['data']} | {r['categoria']} - R$ {r['valor']:.2f}": r for _, r in df.iterrows()}
             item_selecionado = st.selectbox("Selecione um registro para editar:", options=sorted(list(dict_itens.keys()), reverse=True))
@@ -186,9 +197,9 @@ if verificar_senha():
                     nova_o = st.text_input("Nova Obs", value=reg['observacao'] or "", key="edit_obs")
                 
                 b1, b2 = st.columns(2)
-                if b1.button("💾 Salvar Alterações", use_container_width=True):
+                if b1.button("💾 Salvar Alterações", width="stretch"):
                     if atualizar_registro(reg['id'], reg['data'], nova_cat, novo_val, novo_t, nova_o):
                         st.rerun()
-                if b2.button("🗑️ Excluir Registro", type="primary", use_container_width=True):
+                if b2.button("🗑️ Excluir Registro", type="primary", width="stretch"):
                     if deletar_registro(reg['id']):
                         st.rerun()
