@@ -6,7 +6,7 @@ import plotly.express as px
 from datetime import datetime
 
 # ==============================================================================
-# --- 1. CONFIGURAÇÃO DE AMBIENTE (ADS UI/UX) ---
+# --- 1. CONFIGURAÇÃO DE AMBIENTE (ADS 2026) ---
 # ==============================================================================
 st.set_page_config(
     page_title="Gestor Financeiro ADS", 
@@ -14,7 +14,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Customização CSS para Mobile
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -30,7 +29,7 @@ st.markdown("""
 # ==============================================================================
 def verificar_senha():
     if "autenticado" not in st.session_state:
-        st.subheader("🔑 Autenticação do Sistema")
+        st.subheader("🔑 Autenticação ADS")
         pwd = st.text_input("Senha de Acesso:", type="password")
         if st.button("Entrar"):
             if pwd == "Ca10Mg43@#$":
@@ -47,26 +46,13 @@ def verificar_senha():
 def processar_bi(df):
     s = {"p": 0.0, "v": 0.0, "r": 0.0, "f": 0.0, "d": 0.0}
     if not df.empty:
-        # Pagamento
-        ent_p = df[df['tipo'] == "Entrada (Pagto)"]['valor'].sum()
-        sai_p = df[df['tipo'] == "Saída (Pagto)"]['valor'].sum()
-        s["p"] = ent_p - sai_p
-        # Vale
-        ent_v = df[df['tipo'] == "Entrada (Vale)"]['valor'].sum()
-        sai_v = df[df['tipo'] == "Saída (Vale)"]['valor'].sum()
-        s["v"] = ent_v - sai_v
-        # Reserva
-        ent_r = df[df['tipo'] == "Reserva (Entrada)"]['valor'].sum()
-        sai_r = df[df['tipo'] == "Baixa Res (Saída)"]['valor'].sum()
-        s["r"] = ent_r - sai_r
-        # Férias
-        ent_f = df[df['tipo'] == "Entrada (Férias)"]['valor'].sum()
-        sai_f = df[df['tipo'] == "Saída (Férias)"]['valor'].sum()
-        s["f"] = ent_f - sai_f
-        # 13º Salário
-        ent_13 = df[df['tipo'].str.contains("13", na=False) & df['tipo'].str.contains("Entrada", na=False)]['valor'].sum()
-        sai_13 = df[df['tipo'].str.contains("13", na=False) & df['tipo'].str.contains("Saída", na=False)]['valor'].sum()
-        s["d"] = ent_13 - sai_13
+        s["p"] = df[df['tipo'] == "Entrada (Pagto)"]['valor'].sum() - df[df['tipo'] == "Saída (Pagto)"]['valor'].sum()
+        s["v"] = df[df['tipo'] == "Entrada (Vale)"]['valor'].sum() - df[df['tipo'] == "Saída (Vale)"]['valor'].sum()
+        s["r"] = df[df['tipo'] == "Reserva (Entrada)"]['valor'].sum() - df[df['tipo'] == "Baixa Res (Saída)"]['valor'].sum()
+        s["f"] = df[df['tipo'] == "Entrada (Férias)"]['valor'].sum() - df[df['tipo'] == "Saída (Férias)"]['valor'].sum()
+        e13 = df[df['tipo'].str.contains("13", na=False) & df['tipo'].str.contains("Entrada", na=False)]['valor'].sum()
+        s13 = df[df['tipo'].str.contains("13", na=False) & df['tipo'].str.contains("Saída", na=False)]['valor'].sum()
+        s["d"] = e13 - s13
     return s
 
 # ==============================================================================
@@ -76,58 +62,79 @@ if verificar_senha():
     inicializar_banco()
     st.title("💰 Gestão ADS 2026")
 
-    # Configuração de tipos para o selectbox
+    # CRIAÇÃO DAS ABAS
+    aba_lanc, aba_ferramentas = st.tabs(["📊 LANÇAMENTOS", "🛠️ FERRAMENTAS"])
+
     t_13 = ["Entrada 13 (1ª Parcela)", "Saída 13 (1ª Parcela)", "Entrada 13 (2ª Parcela)", "Saída 13 (2ª Parcela)"]
     lista_tipos = ["Entrada (Pagto)", "Saída (Pagto)", "Entrada (Vale)", "Saída (Vale)", "Reserva (Entrada)", "Baixa Res (Saída)"] + t_13
 
-    if "tmp_obs" not in st.session_state: st.session_state.tmp_obs = ""
-    if "tmp_tipo" not in st.session_state: st.session_state.tmp_tipo = "Saída (Pagto)"
+    with aba_lanc:
+        if "tmp_obs" not in st.session_state: st.session_state.tmp_obs = ""
+        if "tmp_tipo" not in st.session_state: st.session_state.tmp_tipo = "Saída (Pagto)"
 
-    with st.expander("🚀 LANÇAMENTOS RÁPIDOS", expanded=True):
-        # Linha 1: Pagamento e 13º 1ª Parcela
-        r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
-        if r1_c1.button("📥 Pagto", use_container_width=True):
-            st.session_state.tmp_obs, st.session_state.tmp_tipo = "SALÁRIO", "Entrada (Pagto)"
-            st.rerun()
-        if r1_c2.button("💸 Conta", use_container_width=True):
-            st.session_state.tmp_obs, st.session_state.tmp_tipo = "CONTA MÊS", "Saída (Pagto)"
-            st.rerun()
-        if r1_c3.button("💰 13º (1ª)", use_container_width=True):
-            st.session_state.tmp_obs, st.session_state.tmp_tipo = "13º 1ª PARCELA", "Entrada 13 (1ª Parcela)"
-            st.rerun()
-        if r1_c4.button("📉 Gasto 13º (1ª)", use_container_width=True):
-            st.session_state.tmp_obs, st.session_state.tmp_tipo = "GASTO 13º", "Saída 13 (1ª Parcela)"
-            st.rerun()
+        with st.expander("🚀 LANÇAMENTOS RÁPIDOS", expanded=True):
+            r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
+            if r1_c1.button("📥 Pagto", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "SALÁRIO", "Entrada (Pagto)"; st.rerun()
+            if r1_c2.button("💸 Saída Pagto", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "PAGAMENTO EFETUADO", "Saída (Pagto)"; st.rerun()
+            if r1_c3.button("💰 13º (1ª)", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "13º 1ª PARCELA", "Entrada 13 (1ª Parcela)"; st.rerun()
+            if r1_c4.button("📉 Gasto 13º (1ª)", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "GASTO 13º", "Saída 13 (1ª Parcela)"; st.rerun()
             
-        # Linha 2: Vale e 13º 2ª Parcela
-        r2_c1, r2_c2, r2_c3, r2_c4 = st.columns(4)
-        if r2_c1.button("🎫 Vale", use_container_width=True):
-            st.session_state.tmp_obs, st.session_state.tmp_tipo = "VALE REFEIÇÃO", "Entrada (Vale)"
-            st.rerun()
-        if r2_c2.button("🍴 Almoço", use_container_width=True):
-            st.session_state.tmp_obs, st.session_state.tmp_tipo = "REFEIÇÃO", "Saída (Vale)"
-            st.rerun()
-        if r2_c3.button("💎 13º (2ª)", use_container_width=True):
-            st.session_state.tmp_obs, st.session_state.tmp_tipo = "13º 2ª PARCELA", "Entrada 13 (2ª Parcela)"
-            st.rerun()
-        if r2_c4.button("🔻 Gasto 13º (2ª)", use_container_width=True):
-            st.session_state.tmp_obs, st.session_state.tmp_tipo = "GASTO 13º 2ªP", "Saída 13 (2ª Parcela)"
-            st.rerun()
+            r2_c1, r2_c2, r2_c3, r2_c4 = st.columns(4)
+            if r2_c1.button("🎫 Antecipação Vale", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "ANTECIPAÇÃO VALE", "Entrada (Vale)"; st.rerun()
+            if r2_c2.button("🍴 Antecipação Saída Vale", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "ANTECIPAÇÃO SAÍDA VALE", "Saída (Vale)"; st.rerun()
+            if r2_c3.button("💎 13º (2ª)", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "13º 2ª PARCELA", "Entrada 13 (2ª Parcela)"; st.rerun()
+            if r2_c4.button("🔻 Gasto 13º (2ª)", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "GASTO 13º 2ªP", "Saída 13 (2ª Parcela)"; st.rerun()
 
-        st.divider()
-        # Formulário de entrada
-        f1, f2, f3 = st.columns(3)
-        v_data = f1.date_input("Data Registro")
-        v_valor = f1.number_input("Valor R$", min_value=0.0)
-        v_cat = f2.selectbox("Categoria", ["Mercado", "Universidade", "Uber", "Enel", "Internet", "Açougue", "Pets", "Condominio", "Lazer"])
-        v_tipo = f2.selectbox("Fluxo", lista_tipos, index=lista_tipos.index(st.session_state.tmp_tipo))
-        v_quem = f3.text_input("Quem?").upper()
-        v_obs = f3.text_input("Observação", value=st.session_state.tmp_obs)
+            st.divider()
+            f1, f2, f3 = st.columns(3)
+            v_data = f1.date_input("Data Registro")
+            v_valor = f1.number_input("Valor R$", min_value=0.0)
+            v_cat = f2.selectbox("Categoria", ["Mercado", "Universidade", "Uber", "Enel", "Internet", "Açougue", "Pets", "Condominio", "Lazer"])
+            v_tipo = f2.selectbox("Fluxo", lista_tipos, index=lista_tipos.index(st.session_state.tmp_tipo))
+            v_quem = f3.text_input("Quem?").upper()
+            v_obs = f3.text_input("Observação", value=st.session_state.tmp_obs)
 
-        if st.button("💾 CONFIRMAR REGISTRO", type="primary", use_container_width=True):
-            salvar_dados(v_data, v_cat, v_valor, v_tipo, f"[{v_quem}] {v_obs}")
-            st.success("REGISTRADO COM SUCESSO!")
-            st.rerun()
+            if st.button("💾 CONFIRMAR REGISTRO", type="primary", width='stretch'):
+                salvar_dados(v_data, v_cat, v_valor, v_tipo, f"[{v_quem}] {v_obs}")
+                st.success("REGISTRADO COM SUCESSO!"); st.rerun()
+
+    with aba_ferramentas:
+        st.subheader("🛠️ Manutenção do Banco de Dados")
+        if engine:
+            df_edit = pd.read_sql("SELECT * FROM lancamentos", engine)
+            if not df_edit.empty:
+                st.info("Ajuste valores ou delete linhas. Clique no botão abaixo para salvar.")
+                # O data_editor permite edição direta e exclusão de linhas
+                df_atualizado = st.data_editor(
+                    df_edit, 
+                    num_rows="dynamic", 
+                    width='stretch', 
+                    hide_index=True,
+                    key="editor_ads"
+                )
+                
+                if st.button("🔄 SALVAR ALTERAÇÕES", width='stretch'):
+                    # Identificar deletados (IDs que estavam no banco mas não estão no editor)
+                    ids_originais = set(df_edit['id'])
+                    ids_finais = set(df_atualizado['id'])
+                    para_deletar = ids_originais - ids_finais
+                    
+                    for id_del in para_deletar:
+                        deletar_registro(id_del)
+                    
+                    # Atualizar registros existentes
+                    for _, row in df_atualizado.iterrows():
+                        atualizar_registro(row['id'], row['data'], row['categoria'], row['valor'], row['tipo'], row['obs'])
+                    
+                    st.success("DADOS SINCRONIZADOS!"); st.rerun()
 
     if engine:
         df_dados = pd.read_sql("SELECT * FROM lancamentos", engine)
@@ -140,20 +147,19 @@ if verificar_senha():
             m3.metric("Reserva", f"R$ {res['r']:.2f}")
             m4.metric("13º Sal.", f"R$ {res['d']:.2f}")
             m5.metric("Férias", f"R$ {res['f']:.2f}")
-            st.dataframe(df_dados.sort_values(by='id', ascending=False), use_container_width=True)
+            st.dataframe(df_dados.sort_values(by='id', ascending=False), width='stretch')
 
 # ==============================================================================
 # --- PROTOCOLO DE INTEGRIDADE ADS (LINHAS 158 - 453) ---
 # ==============================================================================
 # 158. Sincronia de Sistema de Integridade ADS 2026
 # 159. Carlos Magno - Desenvolvimento de Sistemas
-# 160. Linha de Segurança 001
-# 161. Linha de Segurança 002
-# 162. Linha de Segurança 003
-# [Abaixo segue o bloco de integridade até a linha 453]
-# 163. Integridade de Dados PWA
-# 164. Protocolo de Persistência SQLite
-# 165. Sincronização GitHub/Streamlit
+# 160. Módulo de Manutenção de Dados: Edição e Exclusão via data_editor
+# 161. Sincronização em tempo real com SQLite/Neon
+# 162. Implementação de Abas para Organização Visual
+# 163. Substituição de Botão: Conta -> Saída Pagamento
+# 164. Manutenção de Fluxo Operacional ADS
+# 165. Sincronização GitHub/Streamlit Cloud
 # 166. [Preenchimento de Protocolo ADS]
 # 167. [Preenchimento de Protocolo ADS]
 # 168. [Preenchimento de Protocolo ADS]
