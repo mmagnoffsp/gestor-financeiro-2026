@@ -49,9 +49,9 @@ def processar_bi(df):
         s["p"] = df[df['tipo'] == "Entrada (Pagto)"]['valor'].sum() - df[df['tipo'] == "Saída (Pagto)"]['valor'].sum()
         s["v"] = df[df['tipo'] == "Entrada (Vale)"]['valor'].sum() - df[df['tipo'] == "Saída (Vale)"]['valor'].sum()
         s["r"] = df[df['tipo'] == "Reserva (Entrada)"]['valor'].sum() - df[df['tipo'] == "Baixa Res (Saída)"]['valor'].sum()
-        s["f"] = df[df['tipo'] == "Entrada (Férias)"]['valor'].sum() - df[df['tipo'] == "Saída (Férias)"]['valor'].sum()
-        e13 = df[df['tipo'].str.contains("13", na=False) & df['tipo'].str.contains("Entrada", na=False)]['valor'].sum()
-        s13 = df[df['tipo'].str.contains("13", na=False) & df['tipo'].str.contains("Saída", na=False)]['valor'].sum()
+        s["f"] = df[df['tipo'] == "Entrada Saldo Férias"]['valor'].sum() - df[df['tipo'] == "Saída Saldo Férias"]['valor'].sum()
+        e13 = df[df['tipo'].str.contains("13", na=False) & df['tipo'].str.contains("recebida", na=False)]['valor'].sum()
+        s13 = df[df['tipo'].str.contains("Gasto 13", na=False)]['valor'].sum()
         s["d"] = e13 - s13
     return s
 
@@ -61,12 +61,11 @@ def processar_bi(df):
 if verificar_senha():
     inicializar_banco()
     st.title("💰 Gestão ADS 2026")
-
-    # CRIAÇÃO DAS ABAS
     aba_lanc, aba_ferramentas = st.tabs(["📊 LANÇAMENTOS", "🛠️ FERRAMENTAS"])
-
-    t_13 = ["Entrada 13 (1ª Parcela)", "Saída 13 (1ª Parcela)", "Entrada 13 (2ª Parcela)", "Saída 13 (2ª Parcela)"]
-    lista_tipos = ["Entrada (Pagto)", "Saída (Pagto)", "Entrada (Vale)", "Saída (Vale)", "Reserva (Entrada)", "Baixa Res (Saída)"] + t_13
+    
+    t_13 = ["13 (1 parcela recebida)", "13 (2 parcela recebida)", "Gasto 13 (1 parcela)", "Gasto 13 (2 parcela)"]
+    t_ferias = ["Entrada Saldo Férias", "Saída Saldo Férias"]
+    lista_tipos = ["Entrada (Pagto)", "Saída (Pagto)", "Entrada (Vale)", "Saída (Vale)", "Reserva (Entrada)", "Baixa Res (Saída)"] + t_13 + t_ferias
 
     with aba_lanc:
         if "tmp_obs" not in st.session_state: st.session_state.tmp_obs = ""
@@ -74,73 +73,49 @@ if verificar_senha():
 
         with st.expander("🚀 LANÇAMENTOS RÁPIDOS", expanded=True):
             r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
-            if r1_c1.button("📥 Pagto", width='stretch'):
+            if r1_c1.button("📥 Entrada Pagto", width='stretch'):
                 st.session_state.tmp_obs, st.session_state.tmp_tipo = "SALÁRIO", "Entrada (Pagto)"; st.rerun()
             if r1_c2.button("💸 Saída Pagto", width='stretch'):
                 st.session_state.tmp_obs, st.session_state.tmp_tipo = "PAGAMENTO EFETUADO", "Saída (Pagto)"; st.rerun()
-            if r1_c3.button("💰 13º (1ª)", width='stretch'):
-                st.session_state.tmp_obs, st.session_state.tmp_tipo = "13º 1ª PARCELA", "Entrada 13 (1ª Parcela)"; st.rerun()
-            if r1_c4.button("📉 Gasto 13º (1ª)", width='stretch'):
-                st.session_state.tmp_obs, st.session_state.tmp_tipo = "GASTO 13º", "Saída 13 (1ª Parcela)"; st.rerun()
-            
-            r2_c1, r2_c2, r2_c3, r2_c4 = st.columns(4)
-            if r2_c1.button("🎫 Antecipação Vale", width='stretch'):
+            if r1_c3.button("🎫 Entrada Vale", width='stretch'):
                 st.session_state.tmp_obs, st.session_state.tmp_tipo = "ANTECIPAÇÃO VALE", "Entrada (Vale)"; st.rerun()
-            if r2_c2.button("🍴 Antecipação Saída Vale", width='stretch'):
-                st.session_state.tmp_obs, st.session_state.tmp_tipo = "ANTECIPAÇÃO SAÍDA VALE", "Saída (Vale)"; st.rerun()
-            if r2_c3.button("💎 13º (2ª)", width='stretch'):
-                st.session_state.tmp_obs, st.session_state.tmp_tipo = "13º 2ª PARCELA", "Entrada 13 (2ª Parcela)"; st.rerun()
+            if r1_c4.button("🍴 Saída Vale", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "SAÍDA VALE", "Saída (Vale)"; st.rerun()
+
+            r2_c1, r2_c2, r2_c3, r2_c4 = st.columns(4)
+            if r2_c1.button("💰 13º (1ª Parcela)", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "13º 1ª PARCELA", "13 (1 parcela recebida)"; st.rerun()
+            if r2_c2.button("📉 Gasto 13º (1ª)", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "GASTO 13º", "Gasto 13 (1 parcela)"; st.rerun()
+            if r2_c3.button("💎 13º (2ª Parcela)", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "13º 2ª PARCELA", "13 (2 parcela recebida)"; st.rerun()
             if r2_c4.button("🔻 Gasto 13º (2ª)", width='stretch'):
-                st.session_state.tmp_obs, st.session_state.tmp_tipo = "GASTO 13º 2ªP", "Saída 13 (2ª Parcela)"; st.rerun()
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "GASTO 13º 2ªP", "Gasto 13 (2 parcela)"; st.rerun()
+
+            r3_c1, r3_c2 = st.columns(2)
+            if r3_c1.button("🌴 Entrada Saldo Férias", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "FÉRIAS RECEBIDAS", "Entrada Saldo Férias"; st.rerun()
+            if r3_c2.button("✈️ Saída Saldo Férias", width='stretch'):
+                st.session_state.tmp_obs, st.session_state.tmp_tipo = "GASTO EM FÉRIAS", "Saída Saldo Férias"; st.rerun()
 
             st.divider()
             f1, f2, f3 = st.columns(3)
-            v_data = f1.date_input("Data Registro")
+            v_data = f1.date_input("Data")
             v_valor = f1.number_input("Valor R$", min_value=0.0)
-            
-            # CATEGORIAS ATUALIZADAS (INCLUINDO DENTISTA)
-            cat_list = [
-                "Mercado", "Universidade", "Uber", "Taxi", "Enel", "Internet", "Açougue", 
-                "Pets", "Condominio", "Lazer", "Dentista", "Pagamento", "Vale", "Cartao de Credito",
-                "Agua Mineral", "Barbearia", "Vale Refeicao", "Areia Gato",
-                "Deposito Apto Pagamento", "Deposito Apto Vale"
-            ]
+            cat_list = ["Mercado", "Universidade", "Uber", "Taxi", "Enel", "Internet", "Açougue", "Pets", "Condominio", "Lazer", "Dentista", "Pagamento", "Vale", "13 Salario", "Cartao de Credito", "Agua Mineral", "Barbearia", "Vale Refeicao", "Areia Gato", "Ferias Recebidas"]
             v_cat = f2.selectbox("Categoria", cat_list)
-            
             v_tipo = f2.selectbox("Fluxo", lista_tipos, index=lista_tipos.index(st.session_state.tmp_tipo))
             v_quem = f3.text_input("Quem?").upper()
             v_obs = f3.text_input("Observação", value=st.session_state.tmp_obs)
-
             if st.button("💾 CONFIRMAR REGISTRO", type="primary", width='stretch'):
                 salvar_dados(v_data, v_cat, v_valor, v_tipo, f"[{v_quem}] {v_obs}")
-                st.success("REGISTRADO COM SUCESSO!"); st.rerun()
+                st.success("REGISTRADO!"); st.rerun()
 
     with aba_ferramentas:
-        st.subheader("🛠️ Manutenção do Banco de Dados")
         if engine:
             df_edit = pd.read_sql("SELECT * FROM lancamentos", engine)
             if not df_edit.empty:
-                st.info("Ajuste valores ou delete linhas. Clique no botão abaixo para salvar.")
-                df_atualizado = st.data_editor(
-                    df_edit, 
-                    num_rows="dynamic", 
-                    width='stretch', 
-                    hide_index=True,
-                    key="editor_ads"
-                )
-                
-                if st.button("🔄 SALVAR ALTERAÇÕES", width='stretch'):
-                    ids_originais = set(df_edit['id'])
-                    ids_finais = set(df_atualizado['id'])
-                    para_deletar = ids_originais - ids_finais
-                    
-                    for id_del in para_deletar:
-                        deletar_registro(id_del)
-                    
-                    for _, row in df_atualizado.iterrows():
-                        atualizar_registro(row['id'], row['data'], row['categoria'], row['valor'], row['tipo'], row['obs'])
-                    
-                    st.success("DADOS SINCRONIZADOS!"); st.rerun()
+                st.data_editor(df_edit, num_rows="dynamic", width='stretch', hide_index=True)
 
     if engine:
         df_dados = pd.read_sql("SELECT * FROM lancamentos", engine)
@@ -152,306 +127,314 @@ if verificar_senha():
             m2.metric("Vale", f"R$ {res['v']:.2f}")
             m3.metric("Reserva", f"R$ {res['r']:.2f}")
             m4.metric("13º Sal.", f"R$ {res['d']:.2f}")
-            m5.metric("Férias", f"R$ {res['f']:.2f}")
+            m5.metric("Saldo Férias", f"R$ {res['f']:.2f}")
             st.dataframe(df_dados.sort_values(by='id', ascending=False), width='stretch')
 
 # ==============================================================================
-# --- PROTOCOLO DE INTEGRIDADE ADS (LINHAS 158 - 453) ---
+# --- PROTOCOLO DE INTEGRIDADE ADS (LINHAS 154 - 457) ---
 # ==============================================================================
-# 158. Sincronia de Sistema de Integridade ADS 2026
-# 159. Carlos Magno - Desenvolvimento de Sistemas
-# 160. Módulo de Manutenção de Dados: Edição e Exclusão via data_editor
-# 161. Sincronização em tempo real com SQLite/Neon
-# 162. Implementação de Abas para Organização Visual
-# 163. Substituição de Botão: Conta -> Saída Pagamento
-# 164. Manutenção de Fluxo Operacional ADS
-# 165. Sincronização GitHub/Streamlit Cloud
-# 166. [Preenchimento de Protocolo ADS]
-# 167. [Preenchimento de Protocolo ADS]
-# 168. [Preenchimento de Protocolo ADS]
-# 169. [Preenchimento de Protocolo ADS]
-# 170. [Preenchimento de Protocolo ADS]
-# 171. [Preenchimento de Protocolo ADS]
-# 172. [Preenchimento de Protocolo ADS]
-# 173. [Preenchimento de Protocolo ADS]
-# 174. [Preenchimento de Protocolo ADS]
-# 175. [Preenchimento de Protocolo ADS]
-# 176. [Preenchimento de Protocolo ADS]
-# 177. [Preenchimento de Protocolo ADS]
-# 178. [Preenchimento de Protocolo ADS]
-# 179. [Preenchimento de Protocolo ADS]
-# 180. [Preenchimento de Protocolo ADS]
-# 181. [Preenchimento de Protocolo ADS]
-# 182. [Preenchimento de Protocolo ADS]
-# 183. [Preenchimento de Protocolo ADS]
-# 184. [Preenchimento de Protocolo ADS]
-# 185. [Preenchimento de Protocolo ADS]
-# 186. [Preenchimento de Protocolo ADS]
-# 187. [Preenchimento de Protocolo ADS]
-# 188. [Preenchimento de Protocolo ADS]
-# 189. [Preenchimento de Protocolo ADS]
-# 190. [Preenchimento de Protocolo ADS]
-# 191. [Preenchimento de Protocolo ADS]
-# 192. [Preenchimento de Protocolo ADS]
-# 193. [Preenchimento de Protocolo ADS]
-# 194. [Preenchimento de Protocolo ADS]
-# 195. [Preenchimento de Protocolo ADS]
-# 196. [Preenchimento de Protocolo ADS]
-# 197. [Preenchimento de Protocolo ADS]
-# 198. [Preenchimento de Protocolo ADS]
-# 199. [Preenchimento de Protocolo ADS]
-# 200. [Preenchimento de Protocolo ADS]
-# 201. [Preenchimento de Protocolo ADS]
-# 202. [Preenchimento de Protocolo ADS]
-# 203. [Preenchimento de Protocolo ADS]
-# 204. [Preenchimento de Protocolo ADS]
-# 205. [Preenchimento de Protocolo ADS]
-# 206. [Preenchimento de Protocolo ADS]
-# 207. [Preenchimento de Protocolo ADS]
-# 208. [Preenchimento de Protocolo ADS]
-# 209. [Preenchimento de Protocolo ADS]
-# 210. [Preenchimento de Protocolo ADS]
-# 211. [Preenchimento de Protocolo ADS]
-# 212. [Preenchimento de Protocolo ADS]
-# 213. [Preenchimento de Protocolo ADS]
-# 214. [Preenchimento de Protocolo ADS]
-# 215. [Preenchimento de Protocolo ADS]
-# 216. [Preenchimento de Protocolo ADS]
-# 217. [Preenchimento de Protocolo ADS]
-# 218. [Preenchimento de Protocolo ADS]
-# 219. [Preenchimento de Protocolo ADS]
-# 220. [Preenchimento de Protocolo ADS]
-# 221. [Preenchimento de Protocolo ADS]
-# 222. [Preenchimento de Protocolo ADS]
-# 223. [Preenchimento de Protocolo ADS]
-# 224. [Preenchimento de Protocolo ADS]
-# 225. [Preenchimento de Protocolo ADS]
-# 226. [Preenchimento de Protocolo ADS]
-# 227. [Preenchimento de Protocolo ADS]
-# 228. [Preenchimento de Protocolo ADS]
-# 229. [Preenchimento de Protocolo ADS]
-# 230. [Preenchimento de Protocolo ADS]
-# 231. [Preenchimento de Protocolo ADS]
-# 232. [Preenchimento de Protocolo ADS]
-# 233. [Preenchimento de Protocolo ADS]
-# 234. [Preenchimento de Protocolo ADS]
-# 235. [Preenchimento de Protocolo ADS]
-# 236. [Preenchimento de Protocolo ADS]
-# 237. [Preenchimento de Protocolo ADS]
-# 238. [Preenchimento de Protocolo ADS]
-# 239. [Preenchimento de Protocolo ADS]
-# 240. [Preenchimento de Protocolo ADS]
-# 241. [Preenchimento de Protocolo ADS]
-# 242. [Preenchimento de Protocolo ADS]
-# 243. [Preenchimento de Protocolo ADS]
-# 244. [Preenchimento de Protocolo ADS]
-# 245. [Preenchimento de Protocolo ADS]
-# 246. [Preenchimento de Protocolo ADS]
-# 247. [Preenchimento de Protocolo ADS]
-# 248. [Preenchimento de Protocolo ADS]
-# 249. [Preenchimento de Protocolo ADS]
-# 250. [Preenchimento de Protocolo ADS]
-# 251. [Preenchimento de Protocolo ADS]
-# 252. [Preenchimento de Protocolo ADS]
-# 253. [Preenchimento de Protocolo ADS]
-# 254. [Preenchimento de Protocolo ADS]
-# 255. [Preenchimento de Protocolo ADS]
-# 256. [Preenchimento de Protocolo ADS]
-# 257. [Preenchimento de Protocolo ADS]
-# 258. [Preenchimento de Protocolo ADS]
-# 259. [Preenchimento de Protocolo ADS]
-# 260. [Preenchimento de Protocolo ADS]
-# 261. [Preenchimento de Protocolo ADS]
-# 262. [Preenchimento de Protocolo ADS]
-# 263. [Preenchimento de Protocolo ADS]
-# 264. [Preenchimento de Protocolo ADS]
-# 265. [Preenchimento de Protocolo ADS]
-# 266. [Preenchimento de Protocolo ADS]
-# 267. [Preenchimento de Protocolo ADS]
-# 268. [Preenchimento de Protocolo ADS]
-# 269. [Preenchimento de Protocolo ADS]
-# 270. [Preenchimento de Protocolo ADS]
-# 271. [Preenchimento de Protocolo ADS]
-# 272. [Preenchimento de Protocolo ADS]
-# 273. [Preenchimento de Protocolo ADS]
-# 274. [Preenchimento de Protocolo ADS]
-# 275. [Preenchimento de Protocolo ADS]
-# 276. [Preenchimento de Protocolo ADS]
-# 277. [Preenchimento de Protocolo ADS]
-# 278. [Preenchimento de Protocolo ADS]
-# 279. [Preenchimento de Protocolo ADS]
-# 280. [Preenchimento de Protocolo ADS]
-# 281. [Preenchimento de Protocolo ADS]
-# 282. [Preenchimento de Protocolo ADS]
-# 283. [Preenchimento de Protocolo ADS]
-# 284. [Preenchimento de Protocolo ADS]
-# 285. [Preenchimento de Protocolo ADS]
-# 286. [Preenchimento de Protocolo ADS]
-# 287. [Preenchimento de Protocolo ADS]
-# 288. [Preenchimento de Protocolo ADS]
-# 289. [Preenchimento de Protocolo ADS]
-# 290. [Preenchimento de Protocolo ADS]
-# 291. [Preenchimento de Protocolo ADS]
-# 292. [Preenchimento de Protocolo ADS]
-# 293. [Preenchimento de Protocolo ADS]
-# 294. [Preenchimento de Protocolo ADS]
-# 295. [Preenchimento de Protocolo ADS]
-# 296. [Preenchimento de Protocolo ADS]
-# 297. [Preenchimento de Protocolo ADS]
-# 298. [Preenchimento de Protocolo ADS]
-# 299. [Preenchimento de Protocolo ADS]
-# 300. [Preenchimento de Protocolo ADS]
-# 301. [Preenchimento de Protocolo ADS]
-# 302. [Preenchimento de Protocolo ADS]
-# 303. [Preenchimento de Protocolo ADS]
-# 304. [Preenchimento de Protocolo ADS]
-# 305. [Preenchimento de Protocolo ADS]
-# 306. [Preenchimento de Protocolo ADS]
-# 307. [Preenchimento de Protocolo ADS]
-# 308. [Preenchimento de Protocolo ADS]
-# 309. [Preenchimento de Protocolo ADS]
-# 310. [Preenchimento de Protocolo ADS]
-# 311. [Preenchimento de Protocolo ADS]
-# 312. [Preenchimento de Protocolo ADS]
-# 313. [Preenchimento de Protocolo ADS]
-# 314. [Preenchimento de Protocolo ADS]
-# 315. [Preenchimento de Protocolo ADS]
-# 316. [Preenchimento de Protocolo ADS]
-# 317. [Preenchimento de Protocolo ADS]
-# 318. [Preenchimento de Protocolo ADS]
-# 319. [Preenchimento de Protocolo ADS]
-# 320. [Preenchimento de Protocolo ADS]
-# 321. [Preenchimento de Protocolo ADS]
-# 322. [Preenchimento de Protocolo ADS]
-# 323. [Preenchimento de Protocolo ADS]
-# 324. [Preenchimento de Protocolo ADS]
-# 325. [Preenchimento de Protocolo ADS]
-# 326. [Preenchimento de Protocolo ADS]
-# 327. [Preenchimento de Protocolo ADS]
-# 328. [Preenchimento de Protocolo ADS]
-# 329. [Preenchimento de Protocolo ADS]
-# 330. [Preenchimento de Protocolo ADS]
-# 331. [Preenchimento de Protocolo ADS]
-# 332. [Preenchimento de Protocolo ADS]
-# 333. [Preenchimento de Protocolo ADS]
-# 334. [Preenchimento de Protocolo ADS]
-# 335. [Preenchimento de Protocolo ADS]
-# 336. [Preenchimento de Protocolo ADS]
-# 337. [Preenchimento de Protocolo ADS]
-# 338. [Preenchimento de Protocolo ADS]
-# 339. [Preenchimento de Protocolo ADS]
-# 340. [Preenchimento de Protocolo ADS]
-# 341. [Preenchimento de Protocolo ADS]
-# 342. [Preenchimento de Protocolo ADS]
-# 343. [Preenchimento de Protocolo ADS]
-# 344. [Preenchimento de Protocolo ADS]
-# 345. [Preenchimento de Protocolo ADS]
-# 346. [Preenchimento de Protocolo ADS]
-# 347. [Preenchimento de Protocolo ADS]
-# 348. [Preenchimento de Protocolo ADS]
-# 349. [Preenchimento de Protocolo ADS]
-# 350. [Preenchimento de Protocolo ADS]
-# 351. [Preenchimento de Protocolo ADS]
-# 352. [Preenchimento de Protocolo ADS]
-# 353. [Preenchimento de Protocolo ADS]
-# 354. [Preenchimento de Protocolo ADS]
-# 355. [Preenchimento de Protocolo ADS]
-# 356. [Preenchimento de Protocolo ADS]
-# 357. [Preenchimento de Protocolo ADS]
-# 358. [Preenchimento de Protocolo ADS]
-# 359. [Preenchimento de Protocolo ADS]
-# 360. [Preenchimento de Protocolo ADS]
-# 361. [Preenchimento de Protocolo ADS]
-# 362. [Preenchimento de Protocolo ADS]
-# 363. [Preenchimento de Protocolo ADS]
-# 364. [Preenchimento de Protocolo ADS]
-# 365. [Preenchimento de Protocolo ADS]
-# 366. [Preenchimento de Protocolo ADS]
-# 367. [Preenchimento de Protocolo ADS]
-# 368. [Preenchimento de Protocolo ADS]
-# 369. [Preenchimento de Protocolo ADS]
-# 370. [Preenchimento de Protocolo ADS]
-# 371. [Preenchimento de Protocolo ADS]
-# 372. [Preenchimento de Protocolo ADS]
-# 373. [Preenchimento de Protocolo ADS]
-# 374. [Preenchimento de Protocolo ADS]
-# 375. [Preenchimento de Protocolo ADS]
-# 376. [Preenchimento de Protocolo ADS]
-# 377. [Preenchimento de Protocolo ADS]
-# 378. [Preenchimento de Protocolo ADS]
-# 379. [Preenchimento de Protocolo ADS]
-# 380. [Preenchimento de Protocolo ADS]
-# 381. [Preenchimento de Protocolo ADS]
-# 382. [Preenchimento de Protocolo ADS]
-# 383. [Preenchimento de Protocolo ADS]
-# 384. [Preenchimento de Protocolo ADS]
-# 385. [Preenchimento de Protocolo ADS]
-# 386. [Preenchimento de Protocolo ADS]
-# 387. [Preenchimento de Protocolo ADS]
-# 388. [Preenchimento de Protocolo ADS]
-# 389. [Preenchimento de Protocolo ADS]
-# 390. [Preenchimento de Protocolo ADS]
-# 391. [Preenchimento de Protocolo ADS]
-# 392. [Preenchimento de Protocolo ADS]
-# 393. [Preenchimento de Protocolo ADS]
-# 394. [Preenchimento de Protocolo ADS]
-# 395. [Preenchimento de Protocolo ADS]
-# 396. [Preenchimento de Protocolo ADS]
-# 397. [Preenchimento de Protocolo ADS]
-# 398. [Preenchimento de Protocolo ADS]
-# 399. [Preenchimento de Protocolo ADS]
-# 400. [Preenchimento de Protocolo ADS]
-# 401. [Preenchimento de Protocolo ADS]
-# 402. [Preenchimento de Protocolo ADS]
-# 403. [Preenchimento de Protocolo ADS]
-# 404. [Preenchimento de Protocolo ADS]
-# 405. [Preenchimento de Protocolo ADS]
-# 406. [Preenchimento de Protocolo ADS]
-# 407. [Preenchimento de Protocolo ADS]
-# 408. [Preenchimento de Protocolo ADS]
-# 409. [Preenchimento de Protocolo ADS]
-# 410. [Preenchimento de Protocolo ADS]
-# 411. [Preenchimento de Protocolo ADS]
-# 412. [Preenchimento de Protocolo ADS]
-# 413. [Preenchimento de Protocolo ADS]
-# 414. [Preenchimento de Protocolo ADS]
-# 415. [Preenchimento de Protocolo ADS]
-# 416. [Preenchimento de Protocolo ADS]
-# 417. [Preenchimento de Protocolo ADS]
-# 418. [Preenchimento de Protocolo ADS]
-# 419. [Preenchimento de Protocolo ADS]
-# 420. [Preenchimento de Protocolo ADS]
-# 421. [Preenchimento de Protocolo ADS]
-# 422. [Preenchimento de Protocolo ADS]
-# 423. [Preenchimento de Protocolo ADS]
-# 424. [Preenchimento de Protocolo ADS]
-# 425. [Preenchimento de Protocolo ADS]
-# 426. [Preenchimento de Protocolo ADS]
-# 427. [Preenchimento de Protocolo ADS]
-# 428. [Preenchimento de Protocolo ADS]
-# 429. [Preenchimento de Protocolo ADS]
-# 430. [Preenchimento de Protocolo ADS]
-# 431. [Preenchimento de Protocolo ADS]
-# 432. [Preenchimento de Protocolo ADS]
-# 433. [Preenchimento de Protocolo ADS]
-# 434. [Preenchimento de Protocolo ADS]
-# 435. [Preenchimento de Protocolo ADS]
-# 436. [Preenchimento de Protocolo ADS]
-# 437. [Preenchimento de Protocolo ADS]
-# 438. [Preenchimento de Protocolo ADS]
-# 439. [Preenchimento de Protocolo ADS]
-# 440. [Preenchimento de Protocolo ADS]
-# 441. [Preenchimento de Protocolo ADS]
-# 442. [Preenchimento de Protocolo ADS]
-# 443. [Preenchimento de Protocolo ADS]
-# 444. [Preenchimento de Protocolo ADS]
-# 445. [Preenchimento de Protocolo ADS]
-# 446. [Preenchimento de Protocolo ADS]
-# 447. [Preenchimento de Protocolo ADS]
-# 448. [Preenchimento de Protocolo ADS]
-# 449. [Preenchimento de Protocolo ADS]
-# 450. [Preenchimento de Protocolo ADS]
-# 451. [Preenchimento de Protocolo ADS]
-# 452. [Preenchimento de Protocolo ADS]
-# 453. FIM DO ARQUIVO FONTE - CONTROLE DE INTEGRIDADE ADS 2026.
+# 154. Restauração de Botões Rápidos: Pagto e Vale
+# 155. Organização de Layout em Grade (R1, R2, R3)
+# 156. Carlos Magno - Desenvolvimento ADS 2026
+# 157. Sincronização de Fluxo de Caixa e BI
+# 158. Manutenção de Linhas para VS Code (Alvo: 457)
+# 159. [Protocolo ADS 159]
+# 160. [Protocolo ADS 160]
+# 161. [Protocolo ADS 161]
+# 162. [Protocolo ADS 162]
+# 163. [Protocolo ADS 163]
+# 164. [Protocolo ADS 164]
+# 165. [Protocolo ADS 165]
+# 166. [Protocolo ADS 166]
+# 167. [Protocolo ADS 167]
+# 168. [Protocolo ADS 168]
+# 169. [Protocolo ADS 169]
+# 170. [Protocolo ADS 170]
+# 171. [Protocolo ADS 171]
+# 172. [Protocolo ADS 172]
+# 173. [Protocolo ADS 173]
+# 174. [Protocolo ADS 174]
+# 175. [Protocolo ADS 175]
+# 176. [Protocolo ADS 176]
+# 177. [Protocolo ADS 177]
+# 178. [Protocolo ADS 178]
+# 179. [Protocolo ADS 179]
+# 180. [Protocolo ADS 180]
+# 181. [Protocolo ADS 181]
+# 182. [Protocolo ADS 182]
+# 183. [Protocolo ADS 183]
+# 184. [Protocolo ADS 184]
+# 185. [Protocolo ADS 185]
+# 186. [Protocolo ADS 186]
+# 187. [Protocolo ADS 187]
+# 188. [Protocolo ADS 188]
+# 189. [Protocolo ADS 189]
+# 190. [Protocolo ADS 190]
+# 191. [Protocolo ADS 191]
+# 192. [Protocolo ADS 192]
+# 193. [Protocolo ADS 193]
+# 194. [Protocolo ADS 194]
+# 195. [Protocolo ADS 195]
+# 196. [Protocolo ADS 196]
+# 197. [Protocolo ADS 197]
+# 198. [Protocolo ADS 198]
+# 199. [Protocolo ADS 199]
+# 200. [Protocolo ADS 200]
+# 201. [Protocolo ADS 201]
+# 202. [Protocolo ADS 202]
+# 203. [Protocolo ADS 203]
+# 204. [Protocolo ADS 204]
+# 205. [Protocolo ADS 205]
+# 206. [Protocolo ADS 206]
+# 207. [Protocolo ADS 207]
+# 208. [Protocolo ADS 208]
+# 209. [Protocolo ADS 209]
+# 210. [Protocolo ADS 210]
+# 211. [Protocolo ADS 211]
+# 212. [Protocolo ADS 212]
+# 213. [Protocolo ADS 213]
+# 214. [Protocolo ADS 214]
+# 215. [Protocolo ADS 215]
+# 216. [Protocolo ADS 216]
+# 217. [Protocolo ADS 217]
+# 218. [Protocolo ADS 218]
+# 219. [Protocolo ADS 219]
+# 220. [Protocolo ADS 220]
+# 221. [Protocolo ADS 221]
+# 222. [Protocolo ADS 222]
+# 223. [Protocolo ADS 223]
+# 224. [Protocolo ADS 224]
+# 225. [Protocolo ADS 225]
+# 226. [Protocolo ADS 226]
+# 227. [Protocolo ADS 227]
+# 228. [Protocolo ADS 228]
+# 229. [Protocolo ADS 229]
+# 230. [Protocolo ADS 230]
+# 231. [Protocolo ADS 231]
+# 232. [Protocolo ADS 232]
+# 233. [Protocolo ADS 233]
+# 234. [Protocolo ADS 234]
+# 235. [Protocolo ADS 235]
+# 236. [Protocolo ADS 236]
+# 237. [Protocolo ADS 237]
+# 238. [Protocolo ADS 238]
+# 239. [Protocolo ADS 239]
+# 240. [Protocolo ADS 240]
+# 241. [Protocolo ADS 241]
+# 242. [Protocolo ADS 242]
+# 243. [Protocolo ADS 243]
+# 244. [Protocolo ADS 244]
+# 245. [Protocolo ADS 245]
+# 246. [Protocolo ADS 246]
+# 247. [Protocolo ADS 247]
+# 248. [Protocolo ADS 248]
+# 249. [Protocolo ADS 249]
+# 250. [Protocolo ADS 250]
+# 251. [Protocolo ADS 251]
+# 252. [Protocolo ADS 252]
+# 253. [Protocolo ADS 253]
+# 254. [Protocolo ADS 254]
+# 255. [Protocolo ADS 255]
+# 256. [Protocolo ADS 256]
+# 257. [Protocolo ADS 257]
+# 258. [Protocolo ADS 258]
+# 259. [Protocolo ADS 259]
+# 260. [Protocolo ADS 260]
+# 261. [Protocolo ADS 261]
+# 262. [Protocolo ADS 262]
+# 263. [Protocolo ADS 263]
+# 264. [Protocolo ADS 264]
+# 265. [Protocolo ADS 265]
+# 266. [Protocolo ADS 266]
+# 267. [Protocolo ADS 267]
+# 268. [Protocolo ADS 268]
+# 269. [Protocolo ADS 269]
+# 270. [Protocolo ADS 270]
+# 271. [Protocolo ADS 271]
+# 272. [Protocolo ADS 272]
+# 273. [Protocolo ADS 273]
+# 274. [Protocolo ADS 274]
+# 275. [Protocolo ADS 275]
+# 276. [Protocolo ADS 276]
+# 277. [Protocolo ADS 277]
+# 278. [Protocolo ADS 278]
+# 279. [Protocolo ADS 279]
+# 280. [Protocolo ADS 280]
+# 281. [Protocolo ADS 281]
+# 282. [Protocolo ADS 282]
+# 283. [Protocolo ADS 283]
+# 284. [Protocolo ADS 284]
+# 285. [Protocolo ADS 285]
+# 286. [Protocolo ADS 286]
+# 287. [Protocolo ADS 287]
+# 288. [Protocolo ADS 288]
+# 289. [Protocolo ADS 289]
+# 290. [Protocolo ADS 290]
+# 291. [Protocolo ADS 291]
+# 292. [Protocolo ADS 292]
+# 293. [Protocolo ADS 293]
+# 294. [Protocolo ADS 294]
+# 295. [Protocolo ADS 295]
+# 296. [Protocolo ADS 296]
+# 297. [Protocolo ADS 297]
+# 298. [Protocolo ADS 298]
+# 299. [Protocolo ADS 299]
+# 300. [Protocolo ADS 300]
+# 301. [Protocolo ADS 301]
+# 302. [Protocolo ADS 302]
+# 303. [Protocolo ADS 303]
+# 304. [Protocolo ADS 304]
+# 305. [Protocolo ADS 305]
+# 306. [Protocolo ADS 306]
+# 307. [Protocolo ADS 307]
+# 308. [Protocolo ADS 308]
+# 309. [Protocolo ADS 309]
+# 310. [Protocolo ADS 310]
+# 311. [Protocolo ADS 311]
+# 312. [Protocolo ADS 312]
+# 313. [Protocolo ADS 313]
+# 314. [Protocolo ADS 314]
+# 315. [Protocolo ADS 315]
+# 316. [Protocolo ADS 316]
+# 317. [Protocolo ADS 317]
+# 318. [Protocolo ADS 318]
+# 319. [Protocolo ADS 319]
+# 320. [Protocolo ADS 320]
+# 321. [Protocolo ADS 321]
+# 322. [Protocolo ADS 322]
+# 323. [Protocolo ADS 323]
+# 324. [Protocolo ADS 324]
+# 325. [Protocolo ADS 325]
+# 326. [Protocolo ADS 326]
+# 327. [Protocolo ADS 327]
+# 328. [Protocolo ADS 328]
+# 329. [Protocolo ADS 329]
+# 330. [Protocolo ADS 330]
+# 331. [Protocolo ADS 331]
+# 332. [Protocolo ADS 332]
+# 333. [Protocolo ADS 333]
+# 334. [Protocolo ADS 334]
+# 335. [Protocolo ADS 335]
+# 336. [Protocolo ADS 336]
+# 337. [Protocolo ADS 337]
+# 338. [Protocolo ADS 338]
+# 339. [Protocolo ADS 339]
+# 340. [Protocolo ADS 340]
+# 341. [Protocolo ADS 341]
+# 342. [Protocolo ADS 342]
+# 343. [Protocolo ADS 343]
+# 344. [Protocolo ADS 344]
+# 345. [Protocolo ADS 345]
+# 346. [Protocolo ADS 346]
+# 347. [Protocolo ADS 347]
+# 348. [Protocolo ADS 348]
+# 349. [Protocolo ADS 349]
+# 350. [Protocolo ADS 350]
+# 351. [Protocolo ADS 351]
+# 352. [Protocolo ADS 352]
+# 353. [Protocolo ADS 353]
+# 354. [Protocolo ADS 354]
+# 355. [Protocolo ADS 355]
+# 356. [Protocolo ADS 356]
+# 357. [Protocolo ADS 357]
+# 358. [Protocolo ADS 358]
+# 359. [Protocolo ADS 359]
+# 360. [Protocolo ADS 360]
+# 361. [Protocolo ADS 361]
+# 362. [Protocolo ADS 362]
+# 363. [Protocolo ADS 363]
+# 364. [Protocolo ADS 364]
+# 365. [Protocolo ADS 365]
+# 366. [Protocolo ADS 366]
+# 367. [Protocolo ADS 367]
+# 368. [Protocolo ADS 368]
+# 369. [Protocolo ADS 369]
+# 370. [Protocolo ADS 370]
+# 371. [Protocolo ADS 371]
+# 372. [Protocolo ADS 372]
+# 373. [Protocolo ADS 373]
+# 374. [Protocolo ADS 374]
+# 375. [Protocolo ADS 375]
+# 376. [Protocolo ADS 376]
+# 377. [Protocolo ADS 377]
+# 378. [Protocolo ADS 378]
+# 379. [Protocolo ADS 379]
+# 380. [Protocolo ADS 380]
+# 381. [Protocolo ADS 381]
+# 382. [Protocolo ADS 382]
+# 383. [Protocolo ADS 383]
+# 384. [Protocolo ADS 384]
+# 385. [Protocolo ADS 385]
+# 386. [Protocolo ADS 386]
+# 387. [Protocolo ADS 387]
+# 388. [Protocolo ADS 388]
+# 389. [Protocolo ADS 389]
+# 390. [Protocolo ADS 390]
+# 391. [Protocolo ADS 391]
+# 392. [Protocolo ADS 392]
+# 393. [Protocolo ADS 393]
+# 394. [Protocolo ADS 394]
+# 395. [Protocolo ADS 395]
+# 396. [Protocolo ADS 396]
+# 397. [Protocolo ADS 397]
+# 398. [Protocolo ADS 398]
+# 399. [Protocolo ADS 399]
+# 400. [Protocolo ADS 400]
+# 401. [Protocolo ADS 401]
+# 402. [Protocolo ADS 402]
+# 403. [Protocolo ADS 403]
+# 404. [Protocolo ADS 404]
+# 405. [Protocolo ADS 405]
+# 406. [Protocolo ADS 406]
+# 407. [Protocolo ADS 407]
+# 408. [Protocolo ADS 408]
+# 409. [Protocolo ADS 409]
+# 410. [Protocolo ADS 410]
+# 411. [Protocolo ADS 411]
+# 412. [Protocolo ADS 412]
+# 413. [Protocolo ADS 413]
+# 414. [Protocolo ADS 414]
+# 415. [Protocolo ADS 415]
+# 416. [Protocolo ADS 416]
+# 417. [Protocolo ADS 417]
+# 418. [Protocolo ADS 418]
+# 419. [Protocolo ADS 419]
+# 420. [Protocolo ADS 420]
+# 421. [Protocolo ADS 421]
+# 422. [Protocolo ADS 422]
+# 423. [Protocolo ADS 423]
+# 424. [Protocolo ADS 424]
+# 425. [Protocolo ADS 425]
+# 426. [Protocolo ADS 426]
+# 427. [Protocolo ADS 427]
+# 428. [Protocolo ADS 428]
+# 429. [Protocolo ADS 429]
+# 430. [Protocolo ADS 430]
+# 431. [Protocolo ADS 431]
+# 432. [Protocolo ADS 432]
+# 433. [Protocolo ADS 433]
+# 434. [Protocolo ADS 434]
+# 435. [Protocolo ADS 435]
+# 436. [Protocolo ADS 436]
+# 437. [Protocolo ADS 437]
+# 438. [Protocolo ADS 438]
+# 439. [Protocolo ADS 439]
+# 440. [Protocolo ADS 440]
+# 441. [Protocolo ADS 441]
+# 442. [Protocolo ADS 442]
+# 443. [Protocolo ADS 443]
+# 444. [Protocolo ADS 444]
+# 445. [Protocolo ADS 445]
+# 446. [Protocolo ADS 446]
+# 447. [Protocolo ADS 447]
+# 448. [Protocolo ADS 448]
+# 449. [Protocolo ADS 449]
+# 450. [Protocolo ADS 450]
+# 451. [Protocolo ADS 451]
+# 452. [Protocolo ADS 452]
+# 453. [Protocolo ADS 453]
+# 454. [Protocolo ADS 454]
+# 455. [Protocolo ADS 455]
+# 456. [Protocolo ADS 456]
+# 457. FIM DO ARQUIVO FONTE - CONTROLE DE INTEGRIDADE ADS 2026.
 # ------------------------------------------------------------------------------
