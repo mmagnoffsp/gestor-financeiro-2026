@@ -1,19 +1,26 @@
 import os
+import streamlit as st
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
-# 1. Comando que lê o arquivo .env
-load_dotenv()
+# 1. Só carrega o .env se o arquivo existir (Garante que funcione no VS Code)
+if os.path.exists(".env"):
+    load_dotenv()
 
-# 2. Pega o link de forma segura
-DB_URL = os.getenv("DATABASE_URL")
+# 2. Pega o link de forma inteligente:
+# Tenta primeiro o st.secrets (Streamlit Cloud), depois o ambiente (VS Code)
+DB_URL = st.secrets.get("DATABASE_URL") or os.getenv("DATABASE_URL")
 
-# AJUSTE: Garantir que a engine seja criada apenas se a URL existir
+# AJUSTE: Compatibilidade para bancos Postgres antigos (opcional, mas seguro)
+if DB_URL and DB_URL.startswith("postgres://"):
+    DB_URL = DB_URL.replace("postgres://", "postgresql://", 1)
+
+# 3. Criação da Engine
 engine = None
 if not DB_URL:
-    print("❌ ERRO: O arquivo .env não foi lido ou a variável DATABASE_URL está vazia!")
+    st.error("❌ Erro: DATABASE_URL não encontrada! Configure os Secrets no Streamlit ou o .env local.")
 else:
-    # pool_pre_ping=True evita o erro de 'Connection Closed' do Neon
+    # pool_pre_ping=True é vital para o Neon não derrubar sua conexão
     engine = create_engine(DB_URL, pool_pre_ping=True)
 
 def inicializar_banco():
@@ -64,18 +71,14 @@ def deletar_registro(id_registro):
         print(f"Erro ao deletar: {e}")
         return False
 
-# --- NOVA FUNÇÃO DE EDIÇÃO ---
 def atualizar_registro(id_reg, data, categoria, valor, tipo, obs):
     """Atualiza um lançamento existente no banco de dados Neon"""
-    if not engine:
-        return False
-    
+    if not engine: return False
     query = text("""
         UPDATE lancamentos 
         SET data = :d, categoria = :c, valor = :v, tipo = :t, observacao = :o 
         WHERE id = :id
     """)
-    
     try:
         with engine.connect() as conn:
             conn.execute(query, {
