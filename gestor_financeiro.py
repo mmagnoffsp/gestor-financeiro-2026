@@ -97,7 +97,16 @@ if verificar_senha():
             f1, f2, f3 = st.columns(3)
             v_data = f1.date_input("Data Registro")
             v_valor = f1.number_input("Valor R$", min_value=0.0)
-            v_cat = f2.selectbox("Categoria", ["Mercado", "Universidade", "Uber", "Enel", "Internet", "Açougue", "Pets", "Condominio", "Lazer"])
+            
+            # CATEGORIAS ATUALIZADAS (INCLUINDO DENTISTA)
+            cat_list = [
+                "Mercado", "Universidade", "Uber", "Taxi", "Enel", "Internet", "Açougue", 
+                "Pets", "Condominio", "Lazer", "Dentista", "Pagamento", "Vale", "Cartao de Credito",
+                "Agua Mineral", "Barbearia", "Vale Refeicao", "Areia Gato",
+                "Deposito Apto Pagamento", "Deposito Apto Vale"
+            ]
+            v_cat = f2.selectbox("Categoria", cat_list)
+            
             v_tipo = f2.selectbox("Fluxo", lista_tipos, index=lista_tipos.index(st.session_state.tmp_tipo))
             v_quem = f3.text_input("Quem?").upper()
             v_obs = f3.text_input("Observação", value=st.session_state.tmp_obs)
@@ -112,7 +121,6 @@ if verificar_senha():
             df_edit = pd.read_sql("SELECT * FROM lancamentos", engine)
             if not df_edit.empty:
                 st.info("Ajuste valores ou delete linhas. Clique no botão abaixo para salvar.")
-                # O data_editor permite edição direta e exclusão de linhas
                 df_atualizado = st.data_editor(
                     df_edit, 
                     num_rows="dynamic", 
@@ -122,7 +130,6 @@ if verificar_senha():
                 )
                 
                 if st.button("🔄 SALVAR ALTERAÇÕES", width='stretch'):
-                    # Identificar deletados (IDs que estavam no banco mas não estão no editor)
                     ids_originais = set(df_edit['id'])
                     ids_finais = set(df_atualizado['id'])
                     para_deletar = ids_originais - ids_finais
@@ -130,7 +137,6 @@ if verificar_senha():
                     for id_del in para_deletar:
                         deletar_registro(id_del)
                     
-                    # Atualizar registros existentes
                     for _, row in df_atualizado.iterrows():
                         atualizar_registro(row['id'], row['data'], row['categoria'], row['valor'], row['tipo'], row['obs'])
                     
